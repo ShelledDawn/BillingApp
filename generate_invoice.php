@@ -33,18 +33,21 @@ input,select { width:100%; border:none; outline:none; }
 
 <script>
 
-// Fill product details
+// Auto fill product details
 function fillProduct(sel){
     let opt = sel.options[sel.selectedIndex];
 
     document.getElementById("hsn").value = opt.dataset.hsn;
     document.getElementById("rate").value = opt.dataset.price;
-    document.getElementById("unit").value = opt.dataset.unit;
+
+    // auto select unit
+    let unit = opt.dataset.unit || "Piece";
+    document.getElementById("unit").value = unit;
 
     calculate();
 }
 
-// Main calculation
+// Calculation
 function calculate(){
 
     let qty = parseFloat(document.getElementById("qty").value) || 0;
@@ -68,7 +71,7 @@ function calculate(){
     document.getElementById("words").innerText = numberToWords(total);
 }
 
-// Convert number to words
+// Number to words
 function numberToWords(num){
 
     num = Math.floor(num);
@@ -153,7 +156,7 @@ Vehicle No:- <input>
 <tr><td colspan="7">Phone:- <input></td></tr>
 </table>
 
-<!-- PRODUCT TABLE -->
+<!-- PRODUCT -->
 <table>
 <tr class="section center">
 <th>S.No</th>
@@ -161,7 +164,7 @@ Vehicle No:- <input>
 <th>HSN</th>
 <th>Qty</th>
 <th>Rate</th>
-<th>Per</th>
+<th>Unit</th>
 <th>Amount</th>
 </tr>
 
@@ -170,12 +173,12 @@ Vehicle No:- <input>
 
 <td>
 <select onchange="fillProduct(this)">
-<option>Select</option>
+<option value="">Select Product</option>
 <?php while($p=$products->fetch_assoc()){ ?>
 <option 
 data-hsn="<?php echo $p['hsn']; ?>"
 data-price="<?php echo $p['price']; ?>"
-data-unit="<?php echo $p['unit'] ?? 'Unit'; ?>">
+data-unit="<?php echo $p['unit'] ?? 'Piece'; ?>">
 <?php echo $p['name']; ?>
 </option>
 <?php } ?>
@@ -185,7 +188,18 @@ data-unit="<?php echo $p['unit'] ?? 'Unit'; ?>">
 <td><input id="hsn"></td>
 <td><input id="qty" oninput="calculate()"></td>
 <td><input id="rate"></td>
-<td><input id="unit"></td>
+
+<td>
+<select id="unit">
+<option value="Piece">Piece</option>
+<option value="Packet">Packet</option>
+<option value="Kg">Kilogram</option>
+<option value="Gram">Gram</option>
+<option value="Liter">Liter</option>
+<option value="Ton">Ton</option>
+</select>
+</td>
+
 <td><input id="amount_input"></td>
 </tr>
 
@@ -215,7 +229,6 @@ data-unit="<?php echo $p['unit'] ?? 'Unit'; ?>">
 
 <br>
 
-<!-- GST SELECT -->
 <select id="gst" onchange="calculate()">
 <option value="2.5">2.5%</option>
 <option value="6">6%</option>
@@ -223,7 +236,7 @@ data-unit="<?php echo $p['unit'] ?? 'Unit'; ?>">
 <option value="14">14%</option>
 </select>
 
-<!-- AMOUNT WORD -->
+<!-- WORD -->
 <table>
 <tr>
 <td>Amount in words:- <span id="words"></span></td>
@@ -235,9 +248,9 @@ data-unit="<?php echo $p['unit'] ?? 'Unit'; ?>">
 <tr>
 <td>
 <b>Terms and conditions</b><br>
-1. All disputes subject to jurisdiction only.<br>
-2. Goods once sold will not be taken back.<br>
-3. Warranty as per company policy.
+1. Goods once sold will not be returned.<br>
+2. Warranty as per company.<br>
+3. Subject to jurisdiction.
 </td>
 </tr>
 </table>
