@@ -10,7 +10,10 @@ if (!isset($_SESSION['login'])) {
     exit();
 }
 
-$profile = $conn->query("SELECT * FROM profile LIMIT 1")->fetch_assoc();
+/* SAFE FETCH (no error if empty) */
+$profile = $conn->query("SELECT * FROM profile LIMIT 1");
+$profile = $profile ? $profile->fetch_assoc() : [];
+
 $products = $conn->query("SELECT * FROM products");
 ?>
 
@@ -29,15 +32,12 @@ body { font-family: Arial; }
     background: #fff;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+table { width:100%; border-collapse: collapse; }
 
 td, th {
-    border: 1px solid #000;
-    padding: 4px;
-    font-size: 13px;
+    border:1px solid #000;
+    padding:5px;
+    font-size:13px;
     vertical-align: top;
 }
 
@@ -46,8 +46,6 @@ td, th {
     color:white;
     text-align:center;
     font-weight:bold;
-    font-size:16px;
-    padding:6px;
 }
 
 .section {
@@ -59,41 +57,24 @@ td, th {
 .right { text-align:right; }
 
 input, select {
+    width:100%;
     border:none;
     outline:none;
-    width:100%;
-    font-size:13px;
 }
 
-/* COMPACT HEADER */
-.seller-box {
-    font-size:14px;
-    line-height:1.4;
-}
+/* compact header */
+.seller-box { font-size:14px; line-height:1.4; }
+.invoice-box input { height:18px; }
 
-.invoice-box {
-    font-size:13px;
-    line-height:1.4;
-}
-
-.invoice-box input {
-    height:18px;
-    margin:2px 0;
-}
-
-/* LOGO */
-.logo {
-    width:100px;
-}
+.logo { width:100px; }
 </style>
 
 <script>
 function fillProduct(sel){
     let opt = sel.options[sel.selectedIndex];
 
-    document.getElementById("hsn").value = opt.dataset.hsn;
-    document.getElementById("rate").value = opt.dataset.price;
-
+    document.getElementById("hsn").value = opt.dataset.hsn || '';
+    document.getElementById("rate").value = opt.dataset.price || '';
     document.getElementById("unit").value = opt.dataset.unit || "Piece";
 
     calculate();
@@ -122,6 +103,24 @@ function calculate(){
     document.getElementById("total").innerText = total.toFixed(2);
 
     document.getElementById("words").innerText = numberToWords(total);
+
+    // GST SUMMARY
+    document.getElementById("hsn_summary").innerText = document.getElementById("hsn").value || '-';
+    document.getElementById("taxable_summary").innerText = amount.toFixed(2);
+    document.getElementById("taxable_total").innerText = amount.toFixed(2);
+
+    document.getElementById("cgst_rate_display").innerText = cgstRate + "%";
+    document.getElementById("sgst_rate_display").innerText = sgstRate + "%";
+
+    document.getElementById("cgst_summary").innerText = cgst.toFixed(2);
+    document.getElementById("sgst_summary").innerText = sgst.toFixed(2);
+
+    document.getElementById("cgst_total").innerText = cgst.toFixed(2);
+    document.getElementById("sgst_total").innerText = sgst.toFixed(2);
+
+    let totalTax = cgst + sgst;
+    document.getElementById("total_tax_summary").innerText = totalTax.toFixed(2);
+    document.getElementById("final_tax_total").innerText = totalTax.toFixed(2);
 }
 
 function numberToWords(num){
@@ -153,9 +152,7 @@ function numberToWords(num){
 
 <!-- HEADER -->
 <table>
-<tr class="header">
-<td colspan="7">Tax Invoice</td>
-</tr>
+<tr class="header"><td colspan="7">Tax Invoice</td></tr>
 
 <tr>
 
@@ -166,22 +163,22 @@ function numberToWords(num){
 </td>
 
 <td colspan="3" class="seller-box">
-<b style="font-size:18px;"><?php echo $profile['shop_name']; ?></b><br>
-<b>Address:</b> <?php echo $profile['address']; ?><br>
-<b>GSTIN:</b> <?php echo $profile['gst']; ?><br>
-<b>Phone:</b> <?php echo $profile['mobile']; ?><br>
-<b>Email:</b> <?php echo $profile['email']; ?>
+<b><?php echo $profile['shop_name'] ?? ''; ?></b><br>
+Address: <?php echo $profile['address'] ?? ''; ?><br>
+GSTIN: <?php echo $profile['gst'] ?? ''; ?><br>
+Phone: <?php echo $profile['mobile'] ?? ''; ?><br>
+Email: <?php echo $profile['email'] ?? ''; ?>
 </td>
 
-<td colspan="3" class="invoice-box">
-<b>Invoice No:</b> <input><br>
-<b>Date:</b> <input type="date"><br>
-<b>E-Way Bill:</b> <input><br>
-<b>Dispatch:</b> <input><br>
-<b>Dispatch Doc:</b> <input><br>
-<b>Destination:</b> <input><br>
-<b>Delivery Date:</b> <input type="date"><br>
-<b>Vehicle No:</b> <input>
+<td colspan="3">
+Invoice No: <input><br>
+Dispatch Doc: <input><br>
+Date: <input type="date"><br>
+Destination: <input><br>
+E-Way Bill: <input><br>
+Delivery Date: <input type="date"><br>
+Dispatch: <input><br>
+Vehicle No: <input>
 </td>
 
 </tr>
@@ -190,28 +187,20 @@ function numberToWords(num){
 <!-- BUYER -->
 <table>
 <tr class="section"><td colspan="7">Buyer (Bill To)</td></tr>
-
-<tr><td colspan="7"><b>Name:</b> <input></td></tr>
-<tr><td colspan="7"><b>Address:</b> <input></td></tr>
-
+<tr><td colspan="7">Name: <input></td></tr>
+<tr><td colspan="7">Address: <input></td></tr>
 <tr>
-<td colspan="3"><b>GSTIN:</b> <input></td>
-<td colspan="4"><b>State:</b> <input></td>
+<td colspan="3">GSTIN: <input></td>
+<td colspan="4">State: <input></td>
 </tr>
-
-<tr><td colspan="7"><b>Phone:</b> <input></td></tr>
+<tr><td colspan="7">Phone: <input></td></tr>
 </table>
 
 <!-- PRODUCT -->
 <table>
 <tr class="section center">
-<th>S.No</th>
-<th>Description</th>
-<th>HSN</th>
-<th>Qty</th>
-<th>Rate</th>
-<th>Unit</th>
-<th>Amount</th>
+<th>S.No</th><th>Description</th><th>HSN</th><th>Qty</th>
+<th>Rate</th><th>Unit</th><th>Amount</th>
 </tr>
 
 <tr>
@@ -219,15 +208,15 @@ function numberToWords(num){
 
 <td>
 <select onchange="fillProduct(this)">
-<option>Select Product</option>
-<?php while($p=$products->fetch_assoc()){ ?>
+<option>Select</option>
+<?php if($products){ while($p=$products->fetch_assoc()){ ?>
 <option 
-data-hsn="<?php echo $p['hsn']; ?>"
-data-price="<?php echo $p['price']; ?>"
-data-unit="<?php echo $p['unit'] ?? 'Piece'; ?>">
-<?php echo $p['name']; ?>
+data-hsn="<?= $p['hsn'] ?>"
+data-price="<?= $p['price'] ?>"
+data-unit="<?= $p['unit'] ?? 'Piece' ?>">
+<?= $p['name'] ?>
 </option>
-<?php } ?>
+<?php }} ?>
 </select>
 </td>
 
@@ -239,60 +228,61 @@ data-unit="<?php echo $p['unit'] ?? 'Piece'; ?>">
 <select id="unit">
 <option>Piece</option>
 <option>Packet</option>
-<option>Kilogram</option>
+<option>Kg</option>
 <option>Gram</option>
 <option>Liter</option>
-<option>Ton</option>
 </select>
 </td>
 
 <td><input id="amount_input"></td>
 </tr>
 
-<tr>
-<td colspan="6" class="right"><b>Taxable Amount</b></td>
-<td id="amount_display">0.00</td>
-</tr>
+<tr><td colspan="6" class="right"><b>Taxable Amount</b></td>
+<td id="amount_display">0.00</td></tr>
 
 <tr>
 <td colspan="5"></td>
-<td>
-<b>CGST</b><br>
+<td>CGST<br>
 <select id="cgst_rate" onchange="calculate()">
 <option value="2.5">2.5%</option>
 <option value="6">6%</option>
 <option value="9">9%</option>
-<option value="14">14%</option>
-</select>
-</td>
+</select></td>
 <td id="cgst_amt">0.00</td>
 </tr>
 
 <tr>
 <td colspan="5"></td>
-<td>
-<b>SGST</b><br>
+<td>SGST<br>
 <select id="sgst_rate" onchange="calculate()">
 <option value="2.5">2.5%</option>
 <option value="6">6%</option>
 <option value="9">9%</option>
-<option value="14">14%</option>
-</select>
-</td>
+</select></td>
 <td id="sgst_amt">0.00</td>
 </tr>
 
-<tr>
-<td colspan="5"></td>
+<tr><td colspan="5"></td>
 <td><b>Total</b></td>
-<td id="total">0.00</td>
-</tr>
+<td id="total">0.00</td></tr>
 </table>
 
 <!-- WORD -->
 <table>
-<tr>
-<td><b>Amount in words:</b> <span id="words"></span></td>
+<tr><td><b>Amount in words:</b> <span id="words"></span></td></tr>
+</table>
+
+<!-- GST SUMMARY -->
+<table>
+<tr class="section center">
+<th>HSN/SAC</th><th>Taxable</th><th>CGST</th><th>SGST</th><th>Total Tax</th>
+</tr>
+<tr class="center">
+<td id="hsn_summary">-</td>
+<td id="taxable_summary">0.00</td>
+<td id="cgst_summary">0.00</td>
+<td id="sgst_summary">0.00</td>
+<td id="total_tax_summary">0.00</td>
 </tr>
 </table>
 
@@ -311,8 +301,8 @@ data-unit="<?php echo $p['unit'] ?? 'Piece'; ?>">
 <!-- SIGN -->
 <table>
 <tr>
-<td class="center">Customer Signature</td>
-<td class="center">Authorised Signature</td>
+<td class="center" style="height:80px;">Customer Signature</td>
+<td class="center">Authorised Signature<br>For: <?= $profile['shop_name'] ?? '' ?></td>
 </tr>
 </table>
 
